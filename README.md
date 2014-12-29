@@ -9,7 +9,7 @@ node-pitft-touch
 ## Installation
 
 ```bash
-$ npm install pitft
+$ npm install pitft-touch
 ```
 
 ## Examples

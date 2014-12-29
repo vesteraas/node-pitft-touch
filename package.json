@@ -11,5 +11,9 @@
   "dependencies": {
     "bindings": "*",
     "nan": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vesteraas/node-pitft-touch.git"
   }
 }
