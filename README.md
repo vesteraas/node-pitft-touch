@@ -14,4 +14,4 @@ $ npm install pitft-touch
 
 ## Examples
 
-See the [examples](https://github.com/vesteraas/node-pitft/tree/master/examples) directory.
+See the [examples](https://github.com/vesteraas/node-pitft-touch/tree/master/examples) directory.
