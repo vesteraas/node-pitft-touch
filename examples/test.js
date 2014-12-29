@@ -1,4 +1,4 @@
-var touchscreen = require("../ts");
+var touchscreen = require("../index");
 
 var touchCount = 0;
 
