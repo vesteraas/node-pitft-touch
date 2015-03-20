@@ -104,8 +104,7 @@ void AsyncAfter(uv_work_t* req) {
             } else if (touchInfo->inputEvents[i].type == EV_ABS && (touchInfo->inputEvents[i].code == ABS_PRESSURE)) {
                 touchInfo->pressure = touchInfo->inputEvents[i].value;
             } else if (touchInfo->inputEvents[i].type == EV_KEY && (touchInfo->inputEvents[i].code == BTN_TOUCH)) {
-                 Persistent<Object> o;
-                 Local<Object> touch = NanNew(o);
+                 Local<Object> touch = NanNew<Object>();
                  touch->Set(NanNew<String>("x"), NanNew<Number>(touchInfo->x));
                  touch->Set(NanNew<String>("y"), NanNew<Number>(touchInfo->y));
                  touch->Set(NanNew<String>("pressure"), NanNew<Number>(touchInfo->pressure));
@@ -127,7 +126,7 @@ void AsyncAfter(uv_work_t* req) {
         }
 
         if (touchInfo->stop) {
-            //delete touchInfo->callback;
+            delete touchInfo->callback;
             delete touchInfo;
             delete req;
         } else {
