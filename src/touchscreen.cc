@@ -13,7 +13,7 @@ void AsyncAfter(uv_work_t* req);
 
 struct TouchInfo {
     int fileDescriptor;
-    Persistent<Function> callback;
+    NanCallback *callback;
 
     bool error;
     std::string errorMessage;
@@ -39,9 +39,6 @@ NAN_METHOD(Async) {
         return NanThrowError("First parameter should be a string");
     }
 
-    v8::String::Utf8Value path(args[0]->ToString());
-    std::string _path = std::string(*path);
-
     if (args[1]->IsUndefined()) {
         return NanThrowError("No callback function specified");
     }
@@ -50,11 +47,11 @@ NAN_METHOD(Async) {
         return NanThrowError("Second argument should be a function");
     }
 
-    Local<Function> callback = Local<Function>::Cast(args[1]);
+    NanUtf8String *path = new NanUtf8String(args[0]);
 
     TouchInfo* touchInfo = new TouchInfo();
-    touchInfo->fileDescriptor = open(_path.c_str(), O_RDONLY);
-    touchInfo->callback = Persistent<Function>::New(callback);
+    touchInfo->fileDescriptor = open(**path, O_RDONLY);
+    touchInfo->callback = new NanCallback(args[1].As<Function>());
     touchInfo->error = false;
     touchInfo->stop = false;
 
@@ -80,19 +77,19 @@ void AsyncWork(uv_work_t* req) {
 }
 
 void AsyncAfter(uv_work_t* req) {
-    HandleScope scope;
+    NanScope();
 
     TouchInfo* touchInfo = static_cast<TouchInfo*>(req->data);
 
     if (touchInfo->error) {
-        Local<Value> err = Exception::Error(String::New(touchInfo->errorMessage.c_str()));
+        Local<Value> err = Exception::Error(NanNew<String>(touchInfo->errorMessage.c_str()));
 
         const unsigned argc = 1;
         Local<Value> argv[argc] = { err };
 
         TryCatch try_catch;
 
-        touchInfo->callback->Call(Context::GetCurrent()->Global(), argc, argv);
+        touchInfo->callback->Call(NanGetCurrentContext()->Global(), argc, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -107,20 +104,20 @@ void AsyncAfter(uv_work_t* req) {
             } else if (touchInfo->inputEvents[i].type == EV_ABS && (touchInfo->inputEvents[i].code == ABS_PRESSURE)) {
                 touchInfo->pressure = touchInfo->inputEvents[i].value;
             } else if (touchInfo->inputEvents[i].type == EV_KEY && (touchInfo->inputEvents[i].code == BTN_TOUCH)) {
-                 Local<Object> touch = Object::New();
-                 touch->Set(String::NewSymbol("x"), Number::New(touchInfo->x));
-                 touch->Set(String::NewSymbol("y"), Number::New(touchInfo->y));
-                 touch->Set(String::NewSymbol("pressure"), Number::New(touchInfo->pressure));
-                 touch->Set(String::NewSymbol("touch"), Number::New(touchInfo->inputEvents[i].value));
-                 touch->Set(String::NewSymbol("stop"), Boolean::New(touchInfo->stop));
+                 Local<Object> touch = NanNew<Object>();
+                 touch->Set(NanNew<String>("x"), NanNew<Number>(touchInfo->x));
+                 touch->Set(NanNew<String>("y"), NanNew<Number>(touchInfo->y));
+                 touch->Set(NanNew<String>("pressure"), NanNew<Number>(touchInfo->pressure));
+                 touch->Set(NanNew<String>("touch"), NanNew<Number>(touchInfo->inputEvents[i].value));
+                 touch->Set(NanNew<String>("stop"), NanNew<Boolean>(touchInfo->stop));
 
                  const unsigned argc = 2;
-                 Local<Value> argv[argc] = { Local<Value>::New(Null()), Local<Value>::New(touch) };
+                 Local<Value> argv[argc] = { NanNull(), NanNew(touch) };
 
                  TryCatch try_catch;
 
-                 touchInfo->callback->Call(Context::GetCurrent()->Global(), argc, argv);
-                 touchInfo->stop = touch->Get(String::NewSymbol("stop"))->BooleanValue();
+                 touchInfo->callback->Call(NanGetCurrentContext()->Global(), argc, argv);
+                 touchInfo->stop = touch->Get(NanNew<String>("stop"))->BooleanValue();
 
                  if (try_catch.HasCaught()) {
                      FatalException(try_catch);
@@ -129,7 +126,7 @@ void AsyncAfter(uv_work_t* req) {
         }
 
         if (touchInfo->stop) {
-            touchInfo->callback.Dispose();
+            delete touchInfo->callback;
             delete touchInfo;
             delete req;
         } else {
@@ -140,8 +137,10 @@ void AsyncAfter(uv_work_t* req) {
 }
 
 void InitAll(Handle<Object> exports, Handle<Object> module) {
-    module->Set(String::NewSymbol("exports"),
-      FunctionTemplate::New(Async)->GetFunction());
+    NanScope();
+
+    module->Set(NanNew("exports"),
+      NanNew<FunctionTemplate>(Async)->GetFunction());
 }
 
 NODE_MODULE(ts, InitAll)
