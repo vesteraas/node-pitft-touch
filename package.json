@@ -1,6 +1,6 @@
 {
   "name": "pitft-touch",
-  "version": "0.0.3",
+  "version": "0.0.4UA",
   "description": "A NodeJS module that gives you access to the Adafruit PiTFT touch screen",
   "main": "index.js",
   "author": "Werner Vesteraas <wvesteraas@gmail.com>",
@@ -8,6 +8,7 @@
     "type": "MIT",
     "url": "http://opensource.org/licenses/MIT"
   },
+  "keywords": ["raspberry pi", "touchscreen", "pitft"],
   "dependencies": {
     "bindings": "^1.2.1",
     "nan": "^1.7.0"
