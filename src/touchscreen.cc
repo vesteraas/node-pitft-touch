@@ -1,4 +1,5 @@
 #include <linux/input.h>
+#include <unistd.h>
 
 #include <v8.h>
 #include <node.h>
@@ -13,7 +14,7 @@ void AsyncAfter(uv_work_t* req);
 
 struct TouchInfo {
     int fileDescriptor;
-    NanCallback *callback;
+    Nan::Callback *callback;
 
     bool error;
     std::string errorMessage;
@@ -29,29 +30,29 @@ struct TouchInfo {
 };
 
 NAN_METHOD(Async) {
-    NanScope();
+    // Nan::HandleScope scope;
 
-    if (args[0]->IsUndefined()) {
-        return NanThrowError("No parameters specified");
+    if (info[0]->IsUndefined()) {
+        return Nan::ThrowError("No parameters specified");
     }
 
-    if (!args[0]->IsString()) {
-        return NanThrowError("First parameter should be a string");
+    if (!info[0]->IsString()) {
+        return Nan::ThrowError("First parameter should be a string");
     }
 
-    if (args[1]->IsUndefined()) {
-        return NanThrowError("No callback function specified");
+    if (info[1]->IsUndefined()) {
+        return Nan::ThrowError("No callback function specified");
     }
 
-    if (!args[1]->IsFunction()) {
-        return NanThrowError("Second argument should be a function");
+    if (!info[1]->IsFunction()) {
+        return Nan::ThrowError("Second argument should be a function");
     }
 
-    NanUtf8String *path = new NanUtf8String(args[0]);
+    Nan::Utf8String *path = new Nan::Utf8String(info[0]);
 
     TouchInfo* touchInfo = new TouchInfo();
     touchInfo->fileDescriptor = open(**path, O_RDONLY);
-    touchInfo->callback = new NanCallback(args[1].As<Function>());
+    touchInfo->callback = new Nan::Callback(info[1].As<Function>());
     touchInfo->error = false;
     touchInfo->stop = false;
 
@@ -62,7 +63,7 @@ NAN_METHOD(Async) {
 
     assert(status == 0);
 
-    NanReturnUndefined();
+    info.GetReturnValue().SetUndefined();
 }
 
 void AsyncWork(uv_work_t* req) {
@@ -77,19 +78,19 @@ void AsyncWork(uv_work_t* req) {
 }
 
 void AsyncAfter(uv_work_t* req) {
-    NanScope();
+    Nan::HandleScope scope;
 
     TouchInfo* touchInfo = static_cast<TouchInfo*>(req->data);
 
     if (touchInfo->error) {
-        Local<Value> err = Exception::Error(NanNew<String>(touchInfo->errorMessage.c_str()));
+        Local<Value> err = Exception::Error(Nan::New<String>(touchInfo->errorMessage.c_str()).ToLocalChecked());
 
         const unsigned argc = 1;
         Local<Value> argv[argc] = { err };
 
         TryCatch try_catch;
 
-        touchInfo->callback->Call(NanGetCurrentContext()->Global(), argc, argv);
+        touchInfo->callback->Call(Nan::GetCurrentContext()->Global(), argc, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -104,20 +105,20 @@ void AsyncAfter(uv_work_t* req) {
             } else if (touchInfo->inputEvents[i].type == EV_ABS && (touchInfo->inputEvents[i].code == ABS_PRESSURE)) {
                 touchInfo->pressure = touchInfo->inputEvents[i].value;
             } else if (touchInfo->inputEvents[i].type == EV_KEY && (touchInfo->inputEvents[i].code == BTN_TOUCH)) {
-                 Local<Object> touch = NanNew<Object>();
-                 touch->Set(NanNew<String>("x"), NanNew<Number>(touchInfo->x));
-                 touch->Set(NanNew<String>("y"), NanNew<Number>(touchInfo->y));
-                 touch->Set(NanNew<String>("pressure"), NanNew<Number>(touchInfo->pressure));
-                 touch->Set(NanNew<String>("touch"), NanNew<Number>(touchInfo->inputEvents[i].value));
-                 touch->Set(NanNew<String>("stop"), NanNew<Boolean>(touchInfo->stop));
+                 Local<Object> touch = Nan::New<Object>();
+                 touch->Set(Nan::New<String>("x").ToLocalChecked(), Nan::New<Number>(touchInfo->x));
+                 touch->Set(Nan::New<String>("y").ToLocalChecked(), Nan::New<Number>(touchInfo->y));
+                 touch->Set(Nan::New<String>("pressure").ToLocalChecked(), Nan::New<Number>(touchInfo->pressure));
+                 touch->Set(Nan::New<String>("touch").ToLocalChecked(), Nan::New<Number>(touchInfo->inputEvents[i].value));
+                 touch->Set(Nan::New<String>("stop").ToLocalChecked(), Nan::New<Boolean>(touchInfo->stop));
 
                  const unsigned argc = 2;
-                 Local<Value> argv[argc] = { NanNull(), NanNew(touch) };
+                 Local<Value> argv[argc] = { Nan::Null(), touch };
 
                  TryCatch try_catch;
 
-                 touchInfo->callback->Call(NanGetCurrentContext()->Global(), argc, argv);
-                 touchInfo->stop = touch->Get(NanNew<String>("stop"))->BooleanValue();
+                 touchInfo->callback->Call(Nan::GetCurrentContext()->Global(), argc, argv);
+                 touchInfo->stop = touch->Get(Nan::New<String>("stop").ToLocalChecked())->BooleanValue();
 
                  if (try_catch.HasCaught()) {
                      FatalException(try_catch);
@@ -137,10 +138,10 @@ void AsyncAfter(uv_work_t* req) {
 }
 
 void InitAll(Handle<Object> exports, Handle<Object> module) {
-    NanScope();
+    Nan::HandleScope scope;
 
-    module->Set(NanNew("exports"),
-      NanNew<FunctionTemplate>(Async)->GetFunction());
+    module->Set(Nan::New("exports").ToLocalChecked(),
+      Nan::New<FunctionTemplate>(Async)->GetFunction());
 }
 
 NODE_MODULE(ts, InitAll)
