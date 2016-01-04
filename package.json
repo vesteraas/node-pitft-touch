@@ -1,6 +1,6 @@
 {
   "name": "pitft-touch",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "A NodeJS module that gives you access to the Adafruit PiTFT touch screen",
   "main": "index.js",
   "author": "Werner Vesteraas <wvesteraas@gmail.com>",
